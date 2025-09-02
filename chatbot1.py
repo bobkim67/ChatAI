@@ -22,7 +22,7 @@ def style_dataframe(df: pd.DataFrame):
 
     return df.style.format(fmt)
 # %%
-file_path = "https://raw.githubusercontent.com/bobkim67/ChatAI/연금챗봇_데이터셋_한글.xlsx"
+file_path = "https://raw.githubusercontent.com/bobkim67/ChatAI/dataset_kor.xlsx"
 #file_path = r"C:\Users\Administrator\Downloads\dashboard\Chatbot\연금챗봇_데이터셋_한글.xlsx"
 
 # 엑셀 파일 전체 시트 읽기
@@ -390,5 +390,6 @@ with st.sidebar:
         st.rerun()
 
 # %%
+
 
 
