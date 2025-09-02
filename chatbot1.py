@@ -5,6 +5,10 @@ import streamlit as st
 from openai import OpenAI
 import pnsn_sim_calculator
 from datetime import date as _date
+import os, re
+import requests
+from io import BytesIO
+from urllib.parse import urlsplit, urlunsplit, quote
 
 def style_dataframe(df: pd.DataFrame):
     fmt = {}
@@ -21,12 +25,60 @@ def style_dataframe(df: pd.DataFrame):
         fmt[col] = "{:,.0f}"
 
     return df.style.format(fmt)
-# %%
-file_path = "https://raw.githubusercontent.com/bobkim67/ChatAI/dataset_kor.xlsx"
-#file_path = r"C:\Users\Administrator\Downloads\dashboard\Chatbot\연금챗봇_데이터셋_한글.xlsx"
 
+def _to_raw_if_github(url: str) -> str:
+    # github blob → raw
+    return re.sub(
+        r"https://github\.com/([^/]+)/([^/]+)/blob/([^/]+)/(.*)",
+        r"https://raw.githubusercontent.com/\1/\2/\3/\4",
+        url,
+    )
+
+def _percent_encode_path(url: str) -> str:
+    s = urlsplit(url)
+    # path만 퍼센트 인코딩 (한글/공백/특수문자 대응)
+    return urlunsplit((s.scheme, s.netloc, quote(s.path), s.query, s.fragment))
+
+def read_excel_safely(src: str, *, sheet_name=0, github_token: str | None = None):
+    # 1) 로컬 파일이면 바로 읽기
+    if not src.lower().startswith(("http://", "https://")):
+        return pd.read_excel(src, sheet_name=sheet_name)
+
+    # 2) 깃허브 blob → raw, 경로 인코딩
+    url = _percent_encode_path(_to_raw_if_github(src))
+
+    # 3) 헤더 구성 (일부 서버는 UA 없으면 403)
+    headers = {"User-Agent": "Mozilla/5.0"}
+    # 프라이빗 repo면 토큰 사용 (Streamlit에선 st.secrets 권장)
+    token = github_token or os.environ.get("GITHUB_TOKEN")
+    if token and ("api.github.com" in url or "raw.githubusercontent.com" in url):
+        headers["Authorization"] = f"token {token}"
+
+    # 4) 요청 & 예외 처리
+    r = requests.get(url, headers=headers, timeout=30)
+    try:
+        r.raise_for_status()
+    except requests.HTTPError as e:
+        # 깃허브 파일 뷰 URL을 그대로 넣었을 때 대비: ?raw=1 붙여 재시도
+        if "github.com/" in src and "/blob/" in src:
+            alt = _percent_encode_path(src.replace("github.com/", "github.com/") + "?raw=1")
+            r = requests.get(_to_raw_if_github(alt), headers=headers, timeout=30)
+            r.raise_for_status()
+        else:
+            raise RuntimeError(f"HTTPError {r.status_code} for URL: {url}") from e
+
+    # 5) 바이트를 엑셀 파서로
+    return pd.read_excel(BytesIO(r.content), sheet_name=sheet_name)
+
+# 사용 예시 ----------------------------------------------------
+# 모든 시트 읽기
+dfs = read_excel_safely(
+    "https://raw.githubusercontent.com/bobkim67/ChatAI/main/dataset_kor.xlsx",
+    sheet_name=None,
+    # github_token=st.secrets.get("GITHUB_TOKEN")  # 프라이빗이면 주석 해제
+)
 # 엑셀 파일 전체 시트 읽기
-dfs = pd.read_excel(file_path, sheet_name=None) 
+# dfs = pd.read_excel(file_path, sheet_name=None) 
 
 # 시트명을 변수로 할당
 계좌정보 = dfs["계좌정보"]
@@ -390,6 +442,7 @@ with st.sidebar:
         st.rerun()
 
 # %%
+
 
 
 
