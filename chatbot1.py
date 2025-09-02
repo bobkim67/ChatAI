@@ -321,23 +321,23 @@ with tab6:
                 df_lump = pnsn_sim_calculator.simulate_pension(**params_lump)    
                 
             # 입력값 요약 + 결과 출력
-            st.subheader("산출결과")
-
-            m1, m2, m3, m4 = st.columns(4)
-            _auto_현재나이 = (평가기준일.year - 생년월일.year) - \
-                             (1 if (연금개시일.month, 연금개시일.day) < (생년월일.month, 생년월일.day) else 0)            
-            with m1: st.metric("현재연령", f"{_auto_현재나이} 세")                    
-            with m2: st.metric("연금개시일자", f"{연금개시일}")
-            with m3: st.metric("연금개시연령", f"{_auto_수령나이}세")
-            with m4: st.metric("연금개시금액", f"{int(df_capped[df_capped['지급회차']==1]['지급전잔액'].values[0]):,} 원")
-
-            if {"총세액","실수령액","실제지급액"}.issubset(df_capped.columns):
+            with st.container(border = True):   
+                st.markdown("##### 산출결과")
                 m1, m2, m3, m4 = st.columns(4)
-                with m1: st.metric("총 연금수령액", f"{int(df_capped['실제지급액'].sum()):,} 원")                    
-                with m2: st.metric("총 세액 합계", f"{int(df_capped['총세액'].sum()):,} 원")
-                with m3: st.metric("실수령 합계", f"{int(df_capped['실수령액'].sum()):,} 원")
-                eff_tax_rate = df_capped['총세액'].sum() / df_capped['실제지급액'].sum() if df_capped['실제지급액'].sum() > 0 else 0
-                with m4: st.metric("실효세율", f"{eff_tax_rate:.1%}")
+                _auto_현재나이 = (평가기준일.year - 생년월일.year) - \
+                                 (1 if (연금개시일.month, 연금개시일.day) < (생년월일.month, 생년월일.day) else 0)            
+                with m1: st.metric("현재연령", f"{_auto_현재나이} 세")                    
+                with m2: st.metric("연금개시일자", f"{연금개시일}")
+                with m3: st.metric("연금개시연령", f"{_auto_수령나이}세")
+                with m4: st.metric("연금개시금액", f"{int(df_capped[df_capped['지급회차']==1]['지급전잔액'].values[0]):,} 원")
+    
+                if {"총세액","실수령액","실제지급액"}.issubset(df_capped.columns):
+                    m1, m2, m3, m4 = st.columns(4)
+                    with m1: st.metric("총 연금수령액", f"{int(df_capped['실제지급액'].sum()):,} 원")                    
+                    with m2: st.metric("총 세액 합계", f"{int(df_capped['총세액'].sum()):,} 원")
+                    with m3: st.metric("실수령 합계", f"{int(df_capped['실수령액'].sum()):,} 원")
+                    eff_tax_rate = df_capped['총세액'].sum() / df_capped['실제지급액'].sum() if df_capped['실제지급액'].sum() > 0 else 0
+                    with m4: st.metric("실효세율", f"{eff_tax_rate:.1%}")
             
             with st.container(border = True):            
                 st.markdown("##### 산출결과(일시금)")
@@ -450,6 +450,7 @@ with st.sidebar:
         st.rerun()
 
 # %%
+
 
 
 
