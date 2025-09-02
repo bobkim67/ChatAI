@@ -193,8 +193,11 @@ def simulate_pension(
         raise ValueError("날짜 입력이 유효하지 않습니다.")
     
     # ── 기본 파생값 ──
-    # 근속년수(올림 / AE25 규칙)
-    근속년수 = math.ceil((( (퇴직일_dt or 평가기준일_dt) - 입사일_dt).days + 1) / 365)
+    # 근속년수(올림)
+    근속월수 = (퇴직일_dt.year - 입사일_dt.year) * 12 + (퇴직일_dt.month - 입사일_dt.month)
+    if 퇴직일_dt.day < 입사일_dt.day:
+        근속월수 -= 1
+    근속년수 = math.ceil((근속월수 + 1) / 12)
 
     # 연금수령연차(제도가입일 기준): 2013-01-01 이전 가입이면 6, 아니면 1
     연금수령연차 = max(0, 평가기준일_dt.year - 연금수령가능일.year) + 6 if 제도가입일_dt < date(2013, 1, 1) else 1
@@ -517,4 +520,5 @@ if __name__ == "__main__":
     )
     print(df)
     # df.to_excel("연금수령_시뮬레이션.xlsx", index=False)
+
 
