@@ -338,7 +338,8 @@ with tab6:
                 with m3: st.metric("실수령 합계", f"{int(df_capped['실수령액'].sum()):,} 원")
                 eff_tax_rate = df_capped['총세액'].sum() / df_capped['실제지급액'].sum() if df_capped['실제지급액'].sum() > 0 else 0
                 with m4: st.metric("실효세율", f"{eff_tax_rate:.1%}")
-                    
+            
+            st.subheader("산출결과(일시금)")
             m1, m2, m3, m4 = st.columns(4)
             with m1: st.metric("총 연금수령액", f"{int(df_lump['실제지급액'].sum()):,} 원")                    
             with m2: st.metric("총 세액 합계", f"{int(df_lump['총세액'].sum()):,} 원")
@@ -448,6 +449,7 @@ with st.sidebar:
         st.rerun()
 
 # %%
+
 
 
 
