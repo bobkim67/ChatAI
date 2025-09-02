@@ -218,12 +218,13 @@ with tab6:
                              (1 if (연금개시일.month, 연금개시일.day) < (생년월일.month, 생년월일.day) else 0)
             st.caption("연금개시 연령: " f"{_auto_수령나이}세")
         with b2:
-            # 근속년수(사용자 조정 가능)
-            _auto_근속년수 = (
-                int((퇴직일 - 입사일).days // 365)
-                if (퇴직일 is not None and 입사일 is not None)
-                else 0
-            )
+            if 퇴직일 is not None and 입사일 is not None:
+                근속월수 = (퇴직일.year - 입사일.year) * 12 + (퇴직일.month - 입사일.month)
+                if 퇴직일.day < 입사일.day:
+                    근속월수 -= 1
+                _auto_근속년수 = math.ceil((근속월수 + 1) / 12)
+            else:
+                _auto_근속년수 = 0
             st.caption("근속년수: " f"{_auto_근속년수}년")
         with b3:
             _auto_연금수령연차 = max(0, 연금개시일.year - _연금수령가능일_dt.year) + 6 if 퇴직연금제도가입일 < _date(2013, 1, 1) else 1            
@@ -442,6 +443,7 @@ with st.sidebar:
         st.rerun()
 
 # %%
+
 
 
 
