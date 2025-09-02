@@ -315,16 +315,13 @@ with tab6:
         try:
             with st.spinner("계산 중..."):
                 df_capped = pnsn_sim_calculator.simulate_pension(**params)
+                # 일시금 지급옵션 추가 계산
+                params_lump = params.copy()
+                params_lump["지급옵션"] = "일시금"
+                df_lump = pnsn_sim_calculator.simulate_pension(**params_lump)    
                 
             # 입력값 요약 + 결과 출력
             st.subheader("산출결과")
-            # nice = params.copy()
-            # # 날짜를 문자열로 바꿔 보기 좋게
-            # for k in ["평가기준일","연금수령가능일","생년월일","입사일","퇴직일","퇴직연금제도가입일","IRP가입일"]:
-            #     if isinstance(nice.get(k), _date):
-            #         nice[k] = str(nice[k])
-            # st.dataframe(style_dataframe(pd.DataFrame([nice])), hide_index=True)
-            
 
             m1, m2, m3, m4 = st.columns(4)
             _auto_현재나이 = (평가기준일.year - 생년월일.year) - \
@@ -341,7 +338,14 @@ with tab6:
                 with m3: st.metric("실수령 합계", f"{int(df_capped['실수령액'].sum()):,} 원")
                 eff_tax_rate = df_capped['총세액'].sum() / df_capped['실제지급액'].sum() if df_capped['실제지급액'].sum() > 0 else 0
                 with m4: st.metric("실효세율", f"{eff_tax_rate:.1%}")
-
+                    
+            m1, m2, m3, m4 = st.columns(4)
+            with m1: st.metric("총 연금수령액", f"{int(df_lump['실제지급액'].sum()):,} 원")                    
+            with m2: st.metric("총 세액 합계", f"{int(df_lump['총세액'].sum()):,} 원")
+            with m3: st.metric("실수령 합계", f"{int(df_lump['실수령액'].sum()):,} 원")
+            eff_tax_rate_lump = df_lump['총세액'].sum() / df_lump['실제지급액'].sum() if df_lump['실제지급액'].sum() > 0 else 0
+            with m4: st.metric("실효세율", f"{eff_tax_rate_lump:.1%}")
+                
             st.markdown("##### 산출결과 내역")
             # col_view = ["지급회차","나이","지급전잔액","한도","실제지급액","총세액","실수령액","세율","지급옵션"]
             # st.dataframe(
@@ -444,6 +448,7 @@ with st.sidebar:
         st.rerun()
 
 # %%
+
 
 
 
