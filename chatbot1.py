@@ -9,6 +9,7 @@ import os, re
 import requests
 from io import BytesIO
 from urllib.parse import urlsplit, urlunsplit, quote
+import math
 
 def style_dataframe(df: pd.DataFrame):
     fmt = {}
@@ -443,6 +444,7 @@ with st.sidebar:
         st.rerun()
 
 # %%
+
 
 
 
