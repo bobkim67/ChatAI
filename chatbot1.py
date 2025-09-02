@@ -1,5 +1,5 @@
 # %%
-# OPENAI_API_KEY=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
+# OPENAI_API_KEY=sk-proj
 import pandas as pd
 import streamlit as st
 from openai import OpenAI
@@ -389,3 +389,4 @@ with st.sidebar:
         st.rerun()
 
 # %%
+
