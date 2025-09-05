@@ -112,7 +112,7 @@ def calc_연금수령가능일(
     생년월일: Union[str, date],
     IRP가입일: Union[str, date],
     퇴직일: Optional[Union[str, date]] = None,
-) -> Tuple[date, Dict[str, date]]:
+) -> date:
     """
     C25/C26 규칙으로 '연금수령가능일'을 계산한다.
     반환: (연금수령가능일, {"C25": C25, "C26": C26, "생55세": 생55세})
@@ -158,15 +158,15 @@ def simulate_pension(
     # 날짜: str("YYYY-MM-DD") 또는 date 허용
     평가기준일: Union[str, date],
     생년월일: Union[str, date],
-    입사일: Union[str, date],
+    입사일: Optional[Union[str, date]],
     퇴직일: Optional[Union[str, date]],
     퇴직연금제도가입일: Union[str, date],
-    IRP가입일: Union[str, date],
+    IRP가입일: Optional[Union[str, date]],
     연금개시일: Union[str, date],
 
     # 금액/율
     과세제외_자기부담금: int,
-    이연퇴직소득: int,
+    이연퇴직소득: Optional[int],
     그외: int,                     # (세액공제자기부담금 + 운용손익)
     운용수익률: float,
 
@@ -175,6 +175,10 @@ def simulate_pension(
     지급기간_년: Optional[int] = None,   # 기간확정형 필수
     수령금액_년: Optional[int] = None,   # 금액확정형 필수
     최대행수: int = 40,               # 무한루프 가드(금액확정형)
+    
+    # 🔸 추가: 퇴직세 override
+    퇴직소득세율_직접입력: Optional[float] = None,
+    퇴직소득산출세액_직접입력: Optional[int] = None,    
 ) -> pd.DataFrame:
     """
     Streamlit 등에서 호출하는 단일 진입점. rows → DataFrame을 반환.
@@ -183,21 +187,36 @@ def simulate_pension(
     # ── 입력 파싱 ──
     평가기준일_dt = _to_date(평가기준일)
     생년월일_dt = _to_date(생년월일)
-    입사일_dt = _to_date(입사일)
-    퇴직일_dt = _to_date(퇴직일)
+    입사일_dt = _to_date(입사일) if 입사일 is not None else None
+    퇴직일_dt = _to_date(퇴직일) if 퇴직일 is not None else None
     제도가입일_dt = _to_date(퇴직연금제도가입일)
-    IRP가입일_dt = _to_date(IRP가입일)
+    IRP가입일_dt_raw = _to_date(IRP가입일) if IRP가입일 is not None else None
+
+    # (1) IRP가입일이 없으면 평가기준일로 대체
+    IRP가입일_dt = IRP가입일_dt_raw if IRP가입일_dt_raw is not None else 평가기준일_dt
+
     연금개시일_dt = _to_date(연금개시일) if 연금개시일 is not None else None
     연금수령가능일 = calc_연금수령가능일(생년월일_dt, IRP가입일_dt, 퇴직일_dt)
-    if 평가기준일_dt is None or 생년월일_dt is None or 입사일_dt is None or 제도가입일_dt is None or IRP가입일_dt is None:
+
+    if 평가기준일_dt is None or 생년월일_dt is None or 제도가입일_dt is None:
         raise ValueError("날짜 입력이 유효하지 않습니다.")
     
     # ── 기본 파생값 ──
-    # 근속년수(올림)
-    근속월수 = (퇴직일_dt.year - 입사일_dt.year) * 12 + (퇴직일_dt.month - 입사일_dt.month)
-    if 퇴직일_dt.day < 입사일_dt.day:
-        근속월수 -= 1
-    근속년수 = math.ceil((근속월수 + 1) / 12)
+    # (2) 이연퇴직소득이 없으면 세금·근속 계산 스킵
+    이연퇴직소득 = 0 if (이연퇴직소득 is None or 이연퇴직소득 <= 0) else int(이연퇴직소득)
+
+    if 이연퇴직소득 > 0:
+        # 근속년수(올림) 계산: 입사일/퇴직일 모두 있어야 함
+        if 입사일_dt is None or 퇴직일_dt is None:
+            raise ValueError("이연퇴직소득이 있는 경우 입사일/퇴직일이 필요합니다.")
+        근속월수 = (퇴직일_dt.year - 입사일_dt.year) * 12 + (퇴직일_dt.month - 입사일_dt.month)
+        if 퇴직일_dt.day < 입사일_dt.day:
+            근속월수 -= 1
+        근속년수 = math.ceil((근속월수 + 1) / 12)
+    else:
+        # 이연퇴직소득이 없으면 근속 계산도 생략
+        근속년수 = 0
+        퇴직일_dt = 퇴직일_dt  # 그대로 두되, 이후 로직에서 사용하지 않음
 
     # 연금수령연차(제도가입일 기준): 2013-01-01 이전 가입이면 6, 아니면 1
     연금수령연차 = max(0, 평가기준일_dt.year - 연금수령가능일.year) + 6 if 제도가입일_dt < date(2013, 1, 1) else 1
@@ -211,21 +230,6 @@ def simulate_pension(
     if (평가기준일_dt.month, 평가기준일_dt.day) < (생년월일_dt.month, 생년월일_dt.day):
         수령나이 -= 1        
 
-    # # ── 옵션별 필수값 검증(호출 시점에만) ──
-    # 지급옵션 = str(지급옵션)
-    # if 지급옵션 == "기간확정형":
-    #     if 지급기간_년 is None or int(지급기간_년) <= 0:
-    #         raise ValueError("기간확정형에는 '지급기간_년'이 필요합니다.")
-    #     총지급년수 = int(지급기간_년)
-    # else:
-    #     # 기간 확정이 아닌 경우에도 표기/가드를 위해 프레임을 잡아둠(미사용)
-    #     총지급년수 = 10**9  # 사실상 무한
-
-    # if 지급옵션 == "금액확정형":
-    #     if 수령금액_년 is None or int(수령금액_년) <= 0:
-    #         raise ValueError("금액확정형에는 '수령금액_년'이 필요합니다.")
-    #     수령금액_년 = int(수령금액_년)
-
     # ── 루프 준비 ──
     rows = []
     cum_paid_taxfree  = 0
@@ -233,12 +237,19 @@ def simulate_pension(
     cap_null_mode = False
 
     U = 연금수령연차
-    과세기간개시일 = 연금개시일_dt # 첫 연금수령일에는 과세기간개시일 = 연금개시일
+    과세기간개시일 = 연금개시일_dt  # 첫 연금수령일에는 과세기간개시일 = 연금개시일
     적립금 = float(과세제외_자기부담금 + 이연퇴직소득 + 그외)
 
-    퇴직세정보 = calc_퇴직소득세(근속년수, 이연퇴직소득)
-    퇴직세율 = 퇴직세정보["퇴직소득세율"]  # 실수(float)
-    
+    # (3) 퇴직세율: 이연퇴직소득이 없으면 0
+    # 🔸 퇴직세율 결정 로직 (우선순위: 직접입력 세율 > 직접입력 세액 > 계산기)
+    if 이연퇴직소득 <= 0:
+        퇴직세율 = 0.0
+    else:
+        if (퇴직소득산출세액_직접입력 is not None) and (퇴직소득산출세액_직접입력 >= 0):
+            퇴직세율 = float(퇴직소득산출세액_직접입력) / float(이연퇴직소득)
+        else:
+            퇴직세율 = calc_퇴직소득세(근속년수, 이연퇴직소득)["퇴직소득세율"]
+
     연금지급일 = 평가기준일_dt
     차년도지급일 = add_year_safe(평가기준일_dt)
     
@@ -519,6 +530,6 @@ if __name__ == "__main__":
         # 지급옵션="금액확정형", 수령금액_년=12_000_000,
     )
     print(df)
-    # df.to_excel("연금수령_시뮬레이션.xlsx", index=False)
+
 
 
