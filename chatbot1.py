@@ -438,9 +438,9 @@ with tab2:
     with c2:
         manual_tax_amount = st.number_input(
             "퇴직소득 산출세액(원)",
-            value=st.session_state[
-                "manual_tax_amount"
-            ],  # ← 캡션 값이 초기값으로 들어감
+            # value=st.session_state[
+            #     "manual_tax_amount"
+            # ],  # ← 캡션 값이 초기값으로 들어감
             step=1,
             key="manual_tax_amount",
             disabled=not use_manual_tax_amount,
@@ -750,3 +750,4 @@ with st.sidebar:
 
         # 4) 즉시 리렌더링하여 사이드바 대화 갱신
         st.rerun()
+
