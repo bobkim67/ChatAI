@@ -153,13 +153,13 @@ if "생년월일" in 고객통합기본.columns:
     ).dt.date
 
 
-퇴직금통산급여계좌 = dfs["퇴직금통산급여계좌"]
-DC가입자계약기본 = dfs["DC가입자계약기본"]
-IRP계좌원천징수내역 = dfs["IRP계좌원천징수내역"]
-IRP소득공제납입내역 = dfs["IRP소득공제납입내역"]
-연금저축계좌기본 = dfs["연금저축계좌기본"]
-연금저축계좌지급내역상세 = dfs["연금저축계좌지급내역상세"]
-개인연금계약기본 = dfs["개인연금계약기본"]
+# 퇴직금통산급여계좌 = dfs["퇴직금통산급여계좌"]
+# DC가입자계약기본 = dfs["DC가입자계약기본"]
+# IRP계좌원천징수내역 = dfs["IRP계좌원천징수내역"]
+# IRP소득공제납입내역 = dfs["IRP소득공제납입내역"]
+# 연금저축계좌기본 = dfs["연금저축계좌기본"]
+# 연금저축계좌지급내역상세 = dfs["연금저축계좌지급내역상세"]
+# 개인연금계약기본 = dfs["개인연금계약기본"]
 
 all_ids = 고객통합기본["고객번호"].unique()
 # %%
@@ -186,13 +186,9 @@ if "messages" not in st.session_state:
 # 고객번호 선택 위젯
 selected_id = st.selectbox("고객번호 선택", sorted(all_ids))
 # 탭 생성
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(
+tab1, tab2 = st.tabs(
     [
         "고객정보",
-        "개인형IRP",
-        "DC",
-        "연금저축계좌",
-        "(구)개인연금",
         "연금시뮬레이션",
     ]
 )
@@ -201,31 +197,31 @@ with tab1:
     st.dataframe(고객통합기본[고객통합기본["고객번호"] == selected_id])
     st.markdown("##### 계좌현황")
     st.dataframe(계좌정보[계좌정보["고객번호"] == selected_id])
-    st.markdown("##### 퇴직금 수령이력")
-    st.dataframe(퇴직금통산급여계좌[퇴직금통산급여계좌["고객번호"] == selected_id])
+    # st.markdown("##### 퇴직금 수령이력")
+    # st.dataframe(퇴직금통산급여계좌[퇴직금통산급여계좌["고객번호"] == selected_id])
+
+# with tab2:
+#     st.markdown("##### IRP 소득공제 납입내역")
+#     st.dataframe(IRP소득공제납입내역[IRP소득공제납입내역["고객번호"] == selected_id])
+#     st.markdown("##### IRP 지급내역")
+#     st.dataframe(IRP계좌원천징수내역[IRP계좌원천징수내역["고객번호"] == selected_id])
+
+# with tab3:
+#     st.markdown("##### DC 계약현황")
+#     st.dataframe(DC가입자계약기본[DC가입자계약기본["고객번호"] == selected_id])
+
+# with tab4:
+#     st.markdown("##### 연금저축 계약현황")
+#     st.dataframe(연금저축계좌기본[연금저축계좌기본["고객번호"] == selected_id])
+#     st.markdown("##### 연금저축 지급내역")
+#     st.dataframe(
+#         연금저축계좌지급내역상세[연금저축계좌지급내역상세["고객번호"] == selected_id]
+#     )
+# with tab5:
+#     st.markdown("##### 개연연금 계약현황")
+#     st.dataframe(개인연금계약기본[개인연금계약기본["고객번호"] == selected_id])
 
 with tab2:
-    st.markdown("##### IRP 소득공제 납입내역")
-    st.dataframe(IRP소득공제납입내역[IRP소득공제납입내역["고객번호"] == selected_id])
-    st.markdown("##### IRP 지급내역")
-    st.dataframe(IRP계좌원천징수내역[IRP계좌원천징수내역["고객번호"] == selected_id])
-
-with tab3:
-    st.markdown("##### DC 계약현황")
-    st.dataframe(DC가입자계약기본[DC가입자계약기본["고객번호"] == selected_id])
-
-with tab4:
-    st.markdown("##### 연금저축 계약현황")
-    st.dataframe(연금저축계좌기본[연금저축계좌기본["고객번호"] == selected_id])
-    st.markdown("##### 연금저축 지급내역")
-    st.dataframe(
-        연금저축계좌지급내역상세[연금저축계좌지급내역상세["고객번호"] == selected_id]
-    )
-with tab5:
-    st.markdown("##### 개연연금 계약현황")
-    st.dataframe(개인연금계약기본[개인연금계약기본["고객번호"] == selected_id])
-
-with tab6:
     st.markdown("##### 연금수령 시뮬레이션")
     # ── (tab6) 계좌 선택 드롭다운 ─────────────────────────────────────────────
     # 계좌정보에서 해당 고객의 계좌만 필터 + DC/IRP/연금저축만 표시
