@@ -673,7 +673,7 @@ with tab2:
             )
 
             # 3) 출력
-            st.dataframe(styled_df, width="stretch", hide_index=True)
+            st.dataframe(styled_df,  hide_index=True) #width="stretch",
 
             st.markdown("##### 산출결과 세부내역")
             st.dataframe(
@@ -686,7 +686,7 @@ with tab2:
                         "과세기간개시일", format="YYYY-MM-DD"
                     ),
                 },
-                width="stretch",
+                #width="stretch",
                 hide_index=True,
             )
 
@@ -750,4 +750,5 @@ with st.sidebar:
 
         # 4) 즉시 리렌더링하여 사이드바 대화 갱신
         st.rerun()
+
 
